@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Show</title>
+</head>
+<body>
+  <h1><%= campInfo.title %> </h1>
+  <h2><%= campInfo.location %></h2>
+  <a href="/campgrounds/<%=campInfo.id%>/edit">Edit</a>
+  <br>
+  <form method="POST" action="/campgrounds/<%=campInfo.id%>?_method=DELETE"><button>Delete</button></form>
+  <br>
+  <a href="/campgrounds">All Campgrounds</a>
+  <a href="/campgrounds/new">Create a new campground</a>
+</body>
+</html>
