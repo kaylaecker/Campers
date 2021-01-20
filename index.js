@@ -3,6 +3,7 @@ const path = require('path');
 const mongoose = require('mongoose');
 const Campground = require('./models/campground')
 const methodOverride = require('method-override');
+const ejsMate = require('ejs-mate');
 
 mongoose.connect('mongodb://localhost:27017/yelp-camp', {useNewUrlParser: true, useUnifiedTopology: true})
 .then(() => {
@@ -19,6 +20,7 @@ app.use(express.urlencoded({extended: true })) //req.body is undefined unless we
 app.use(methodOverride('_method')) //let you use things like put
 app.use(express.json()) //tells express to parse the body as json
 
+app.engine('ejs', ejsMate)
 app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'views'))
 
@@ -38,8 +40,8 @@ app.get('/campgrounds/new', (req, res) => {
 
 app.get('/campgrounds/:id', async(req, res) => {
   const { id } = req.params
-  const campInfo = await Campground.findById(id)
-  res.render('campgrounds/show', {campInfo})
+  const campground = await Campground.findById(id)
+  res.render('campgrounds/show', {campground})
 })
 
 app.get('/campgrounds/:id/edit', async (req,res) => {
