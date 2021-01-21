@@ -80,8 +80,9 @@ app.all('*', (req, res, next) => {
 //it will hit this error handler (below), and error will be this express error
 //should give status code a default when destructuring from error
 app.use((err, req, res, next) => {
-  const { statusCode = 500, message= 'Something went wrong'} = err
-  res.status(statusCode).send(message)
+  const { statusCode = 500} = err
+  if(!err.message) err.message = "Something went horrible awry!"
+  res.status(statusCode).render('error', {err})
 })
 
 app.listen(3000, ()=> {
