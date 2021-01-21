@@ -54,6 +54,9 @@ app.get('/campgrounds/:id/edit', catchAsync(async (req,res) => {
 }))
 
 app.post('/campgrounds', catchAsync(async (req, res, next) => {
+  //can now give ExpressError a message and status code, and it will make way to the handler
+  //will use default/back up if nothing provided 
+  if(!req.body.campground) throw new ExpressError('Invalid Campground Data', 400)
   const campground = new Campground(req.body.campground)
   await campground.save();
   res.redirect(`/campgrounds/${campground.id}`)
