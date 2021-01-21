@@ -6,6 +6,7 @@ const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
 
 const catchAsync = require('./utils/catchAsync');
+const ExpressError = require('./utils/ExpressError');
 
 mongoose.connect('mongodb://localhost:27017/yelp-camp', {useNewUrlParser: true, useUnifiedTopology: true})
 .then(() => {
@@ -70,8 +71,14 @@ app.delete('/campgrounds/:id', catchAsync(async(req, res) => {
   res.redirect('/campgrounds')
 }))
 
+app.all('*', (req, res, next) => {
+  next(new ExpressError('Page Not Found', 404))
+}) //we pass this new error to next, which means that 
+//it will hit this error handler (below), and error will be this express error
+//should give status code a default when destructuring from error
 app.use((err, req, res, next) => {
-  res.send('Something went wrong')
+  const { statusCode = 500, message= 'Something went wrong'} = err
+  res.status(statusCode).send(message)
 })
 
 app.listen(3000, ()=> {
