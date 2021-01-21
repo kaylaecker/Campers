@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const Campground = require('./models/campground')
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
+const Joi = require('joi');
 
 const catchAsync = require('./utils/catchAsync');
 const ExpressError = require('./utils/ExpressError');
@@ -56,7 +57,25 @@ app.get('/campgrounds/:id/edit', catchAsync(async (req,res) => {
 app.post('/campgrounds', catchAsync(async (req, res, next) => {
   //can now give ExpressError a message and status code, and it will make way to the handler
   //will use default/back up if nothing provided 
-  if(!req.body.campground) throw new ExpressError('Invalid Campground Data', 400)
+  // if(!req.body.campground) throw new ExpressError('Invalid Campground Data', 400)
+
+  //campgroundSchema is not a mongoose schema, it validates your data b4 attempting to save  
+  const campgroundSchema = Joi.object({
+    campground: Joi.object({
+      title: Joi.string().required(),
+      pice: Joi.number().required().min(0),
+      image: Joi.string().required(),
+      location: Joi.string().required(),
+      description: Joi.string().required()
+    }).required()
+  })
+  const { error } = campgroundSchema.validate(req.body)
+  if(error){
+    const msg = error.details.map(el => el.message).join(',')
+    throw new ExpressError(msg, 400)
+  }
+  console.log(result)
+
   const campground = new Campground(req.body.campground)
   await campground.save();
   res.redirect(`/campgrounds/${campground.id}`)
