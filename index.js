@@ -1,13 +1,14 @@
 const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
-const Campground = require('./models/campground')
 const methodOverride = require('method-override');
 const ejsMate = require('ejs-mate');
-const Joi = require('joi');
+const Campground = require('./models/campground');
+const Review = require('./models/review');
 
 const catchAsync = require('./utils/catchAsync');
 const ExpressError = require('./utils/ExpressError');
+const { campgroundSchema } = require('./validationSchemas');
 
 mongoose.connect('mongodb://localhost:27017/yelp-camp', {useNewUrlParser: true, useUnifiedTopology: true})
 .then(() => {
@@ -28,6 +29,18 @@ app.engine('ejs', ejsMate)
 app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'views'))
 
+//middleware, so the signature is req, res, next
+const validateCampground = (req, res, next) => {
+  const { error } = campgroundSchema.validate(req.body)
+  if(error){
+    const msg = error.details.map(el => el.message).join(',')
+    throw new ExpressError(msg, 400)
+  } else {
+    // need this part if you want to keep going through to the route handler
+    // should this not result in an error
+    next();
+  }
+}
 
 app.get("/", (req, res) => {
   res.render('index')
@@ -54,34 +67,16 @@ app.get('/campgrounds/:id/edit', catchAsync(async (req,res) => {
   res.render('campgrounds/edit', { campground} )
 }))
 
-app.post('/campgrounds', catchAsync(async (req, res, next) => {
+app.post('/campgrounds', validateCampground, catchAsync(async (req, res, next) => {
   //can now give ExpressError a message and status code, and it will make way to the handler
   //will use default/back up if nothing provided 
   // if(!req.body.campground) throw new ExpressError('Invalid Campground Data', 400)
-
-  //campgroundSchema is not a mongoose schema, it validates your data b4 attempting to save  
-  const campgroundSchema = Joi.object({
-    campground: Joi.object({
-      title: Joi.string().required(),
-      pice: Joi.number().required().min(0),
-      image: Joi.string().required(),
-      location: Joi.string().required(),
-      description: Joi.string().required()
-    }).required()
-  })
-  const { error } = campgroundSchema.validate(req.body)
-  if(error){
-    const msg = error.details.map(el => el.message).join(',')
-    throw new ExpressError(msg, 400)
-  }
-  console.log(result)
-
   const campground = new Campground(req.body.campground)
   await campground.save();
   res.redirect(`/campgrounds/${campground.id}`)
 }))
 
-app.put('/campgrounds/:id', catchAsync(async (req, res, next) => {
+app.put('/campgrounds/:id', validateCampground, catchAsync(async (req, res, next) => {
   const { id } = req.params;
   const campground = await Campground.findByIdAndUpdate(id, {...req.body.campground}, {new:true})
   res.redirect(`/campgrounds/${campground._id}`)
@@ -91,6 +86,15 @@ app.delete('/campgrounds/:id', catchAsync(async(req, res) => {
   const { id } = req.params;
   const deletedCampground = await Campground.findByIdAndDelete(id)
   res.redirect('/campgrounds')
+}))
+
+app.post('/campgrounds/:id/reviews', catchAsync(async(req, res) => {
+  const campground = await Campground.findById(req.params.id);
+  const review = new Review(req.body.review)
+  campground.reviews.push(review);
+  await campground.save();
+  await review.save();
+  res.redirect(`/campgrounds/${campground._id}`);
 }))
 
 app.all('*', (req, res, next) => {
