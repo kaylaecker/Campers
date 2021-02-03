@@ -8,7 +8,7 @@ const Review = require('./models/review');
 
 const catchAsync = require('./utils/catchAsync');
 const ExpressError = require('./utils/ExpressError');
-const { campgroundSchema } = require('./validationSchemas');
+const { campgroundSchema, reviewSchema } = require('./validationSchemas');
 
 mongoose.connect('mongodb://localhost:27017/yelp-camp', {useNewUrlParser: true, useUnifiedTopology: true})
 .then(() => {
@@ -38,6 +38,16 @@ const validateCampground = (req, res, next) => {
   } else {
     // need this part if you want to keep going through to the route handler
     // should this not result in an error
+    next();
+  }
+}
+
+const validateReview = (req, res, next) => {
+  const { error } = reviewSchema.validate(req.body)
+  if(error){
+    const msg = error.details.map(el => el.message).join(',')
+    throw new ExpressError(msg, 400)
+  } else {
     next();
   }
 }
@@ -88,7 +98,7 @@ app.delete('/campgrounds/:id', catchAsync(async(req, res) => {
   res.redirect('/campgrounds')
 }))
 
-app.post('/campgrounds/:id/reviews', catchAsync(async(req, res) => {
+app.post('/campgrounds/:id/reviews', validateReview, catchAsync(async(req, res) => {
   const campground = await Campground.findById(req.params.id);
   const review = new Review(req.body.review)
   campground.reviews.push(review);
