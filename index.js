@@ -8,7 +8,11 @@ const ExpressError = require('./utils/ExpressError');
 const campgrounds = require('./routes/campgrounds')
 const reviews = require('./routes/reviews')
 
-mongoose.connect('mongodb://localhost:27017/yelp-camp', {useNewUrlParser: true, useUnifiedTopology: true})
+mongoose.connect('mongodb://localhost:27017/yelp-camp', {
+  useNewUrlParser: true, 
+  useUnifiedTopology: true,
+  useFindAndModify: false,
+})
 .then(() => {
   console.log("Mongo CONNECITON OPEN")
 })
@@ -19,13 +23,14 @@ mongoose.connect('mongodb://localhost:27017/yelp-camp', {useNewUrlParser: true, 
 
 const app = express();
 
-app.use(express.urlencoded({extended: true })) //req.body is undefined unless we tell express to use middleware
-app.use(methodOverride('_method')) //let you use things like put
-app.use(express.json()) //tells express to parse the body as json
-
 app.engine('ejs', ejsMate)
 app.set('view engine', 'ejs')
 app.set('views', path.join(__dirname, 'views'))
+
+app.use(express.urlencoded({extended: true })) //req.body is undefined unless we tell express to use middleware
+app.use(methodOverride('_method')) //let you use things like put
+app.use(express.json()) //tells express to parse the body as json
+app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/campgrounds', campgrounds)
 app.use('/campgrounds/:id/reviews', reviews)
