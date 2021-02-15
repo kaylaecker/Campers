@@ -6,9 +6,13 @@ const session = require('express-session');
 const ejsMate = require('ejs-mate');
 const ExpressError = require('./utils/ExpressError');
 const flash = require('connect-flash');
+const passport = require('passport');
+const LocalStrategy = require('passport-local');
+const User = require('./models/user');
 
-const campgrounds = require('./routes/campgrounds')
-const reviews = require('./routes/reviews')
+const campgroundRoutes = require('./routes/campgrounds');
+const reviewsRoutes = require('./routes/reviews');
+const userRoutes = require('./routes/users');
 
 mongoose.connect('mongodb://localhost:27017/yelp-camp', {
   useNewUrlParser: true, 
@@ -48,7 +52,19 @@ const sessionConfig = {
 app.use(session(sessionConfig))
 app.use(flash())
 
+app.use(passport.initialize());
+app.use(passport.session()); //must come after app.use(session(sessionConfig))
+passport.use(new LocalStrategy(User.authenticate())); //we're saying hello passport, we would like you to use the local strategy 
+//that we required and for it, the authenticated method is located on our User model and it's called authenticate. 
+//(we didn't make it, comes from passport local mongoose)
+
+passport.serializeUser(User.serializeUser()); //store - this tells passport how to serialize a user - refers to how to store a user in the session
+passport.deserializeUser(User.deserializeUser()); //unstore - how do you get a user out of the session (both methods added in thanks to plugin passport local mongoose)
+
+
 app.use((req, res, next) => {
+  console.log(req.session)
+  res.locals.currentUser = req.user;
   res.locals.success = req.flash('success');
   res.locals.error = req.flash('error');
   next();
@@ -56,8 +72,16 @@ app.use((req, res, next) => {
 // because it's before route handlers, on every single request, we are going to take 
 //whatever is in the flash under success and have access to it in our locals under key success
 
-app.use('/campgrounds', campgrounds)
-app.use('/campgrounds/:id/reviews', reviews)
+/*
+/register get - FORM
+& post - creates user
+login is a get, has login form
+& post to login 
+*/
+
+app.use('/campgrounds', campgroundRoutes);
+app.use('/campgrounds/:id/reviews', reviewsRoutes);
+app.use('/', userRoutes);
 
 app.get("/", (req, res) => {
   res.render('index')
